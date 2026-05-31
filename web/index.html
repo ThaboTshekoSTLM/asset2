@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ICT Asset Web Register</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="login-screen" class="login-screen">
+      <form id="login-form" class="login-panel">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32">
+            <path d="M5 7h22a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-8v3h4v2H9v-2h4v-3H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm0 3v10h22V10H5Z" />
+          </svg>
+        </div>
+        <h1>ICT Asset Web Register</h1>
+        <label>
+          Username
+          <input id="login-username" autocomplete="username" required />
+        </label>
+        <label>
+          Password
+          <input id="login-password" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="primary-btn">Sign in</button>
+        <p id="login-error" class="form-message" role="alert"></p>
+      </form>
+    </div>
+
+    <div id="app-shell" class="app-shell" hidden>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-mark small" aria-hidden="true">
+            <svg viewBox="0 0 32 32">
+              <path d="M5 7h22a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-8v3h4v2H9v-2h4v-3H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm0 3v10h22V10H5Z" />
+            </svg>
+          </div>
+          <div>
+            <strong>ICT Asset</strong>
+            <span>Web Register</span>
+          </div>
+        </div>
+        <nav class="nav-list" aria-label="Main navigation">
+          <button class="nav-item active" data-screen="dashboard">Dashboard</button>
+          <button class="nav-item" data-screen="assets">Assets</button>
+          <button class="nav-item" data-screen="capture">Capture Asset</button>
+          <button class="nav-item" data-screen="movements">Movements</button>
+          <button class="nav-item" data-screen="reports">Reports</button>
+          <button class="nav-item admin-only" data-screen="users">Users</button>
+        </nav>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <div>
+            <h2 id="screen-title">Dashboard</h2>
+            <p id="screen-subtitle">Municipal ICT asset overview</p>
+          </div>
+          <div class="topbar-actions">
+            <span id="current-user" class="current-user"></span>
+            <button id="logout-btn" class="icon-btn" title="Sign out" aria-label="Sign out">
+              <svg viewBox="0 0 24 24"><path d="M10 17v-2h4V9h-4V7h6v10h-6Zm-1-3-1.4-1.4L9.2 11H3V9h6.2L7.6 7.4 9 6l4 4-4 4Z" /></svg>
+            </button>
+          </div>
+        </header>
+
+        <section id="dashboard" class="screen active-screen">
+          <div class="metric-grid">
+            <button class="metric-card" data-status="all">
+              <span>Total assets</span>
+              <strong id="metric-total">0</strong>
+            </button>
+            <button class="metric-card" data-status="moved">
+              <span>Moved assets</span>
+              <strong id="metric-moved">0</strong>
+            </button>
+            <button class="metric-card" data-status="allocated">
+              <span>Allocated</span>
+              <strong id="metric-allocated">0</strong>
+            </button>
+            <button class="metric-card" data-status="recent">
+              <span>Recent moves</span>
+              <strong id="metric-recent">0</strong>
+            </button>
+          </div>
+
+          <div id="dashboard-status" class="status-panel" hidden>
+            <div class="panel-heading">
+              <h3 id="status-title">Status</h3>
+              <button id="close-status" class="secondary-btn">Home</button>
+            </div>
+            <div id="status-list" class="record-list"></div>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel">
+              <div class="panel-heading">
+                <h3>Asset register</h3>
+                <button class="secondary-btn" data-screen-link="capture">Capture asset</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Barcode</th>
+                      <th>Device</th>
+                      <th>Owner</th>
+                      <th>Department</th>
+                      <th>Building</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboard-assets"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <h3>Recent movements</h3>
+                <button class="secondary-btn" data-screen-link="movements">Move asset</button>
+              </div>
+              <div id="recent-movements" class="record-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="assets" class="screen">
+          <div class="toolbar">
+            <input id="asset-search" class="search-input" placeholder="Search barcode, serial, owner, department, building" />
+            <button id="clear-search" class="secondary-btn">Clear</button>
+          </div>
+          <div id="asset-list" class="asset-list"></div>
+        </section>
+
+        <section id="capture" class="screen">
+          <form id="asset-form" class="form-grid panel">
+            <label>Device description<input name="deviceDescription" required /></label>
+            <label>Asset barcode<input name="assetBarcode" required /></label>
+            <label>Serial number<input name="serialNumber" required /></label>
+            <label>Department<input name="department" required /></label>
+            <label>Section<input name="section" /></label>
+            <label>Building name<input name="building" required /></label>
+            <label>Office number<input name="officeNumber" required /></label>
+            <label>Room barcode<input name="roomBarcode" /></label>
+            <label>Current owner<input name="currentOwner" required /></label>
+            <label>Previous owner<input name="previousOwner" value="Stores" /></label>
+            <label>Technician responsible<input name="technician" required /></label>
+            <label>Movement type
+              <select name="movementType">
+                <option>New allocation</option>
+                <option>Transfer</option>
+                <option>Return</option>
+                <option>Repair</option>
+                <option>Disposal</option>
+              </select>
+            </label>
+            <label class="wide">Asset photo
+              <input name="assetPhoto" type="file" accept="image/*" capture="environment" />
+            </label>
+            <label class="wide">Notes / comments<textarea name="notes" rows="3"></textarea></label>
+            <div class="form-actions wide">
+              <button type="reset" class="secondary-btn">Clear form</button>
+              <button type="submit" class="primary-btn">Save asset</button>
+            </div>
+            <p id="asset-form-message" class="form-message wide"></p>
+          </form>
+        </section>
+
+        <section id="movements" class="screen">
+          <form id="movement-form" class="form-grid panel">
+            <label>Asset barcode<input name="assetBarcode" list="asset-barcodes" required /></label>
+            <label>New/current owner<input name="newOwner" required /></label>
+            <label>New building name<input name="newBuilding" required /></label>
+            <label>New office number<input name="newOfficeNumber" required /></label>
+            <label>Department<input name="department" required /></label>
+            <label>Section<input name="section" /></label>
+            <label>Room barcode<input name="roomBarcode" /></label>
+            <label>Movement type
+              <select name="movementType">
+                <option>Transfer</option>
+                <option>New allocation</option>
+                <option>Return</option>
+                <option>Repair</option>
+                <option>Disposal</option>
+              </select>
+            </label>
+            <label>Technician<input name="technician" required /></label>
+            <label>Confirmation<input name="confirmation" required /></label>
+            <label class="wide">Reason for movement<textarea name="reason" rows="3" required></textarea></label>
+            <div class="form-actions wide">
+              <button type="reset" class="secondary-btn">Clear form</button>
+              <button type="submit" class="primary-btn">Record movement</button>
+            </div>
+            <p id="movement-form-message" class="form-message wide"></p>
+          </form>
+          <datalist id="asset-barcodes"></datalist>
+          <section class="panel">
+            <div class="panel-heading"><h3>Movement history</h3></div>
+            <div id="movement-list" class="record-list"></div>
+          </section>
+        </section>
+
+        <section id="reports" class="screen">
+          <div class="panel report-controls">
+            <label>Report type
+              <select id="report-type">
+                <option value="department">Assets per department</option>
+                <option value="building">Assets per building</option>
+                <option value="owner">Assets allocated to user</option>
+                <option value="technician">Assets moved by technician</option>
+                <option value="dateRange">Movement date range</option>
+              </select>
+            </label>
+            <label id="report-filter-label">Filter<input id="report-filter" placeholder="Optional filter" /></label>
+            <button id="load-report" class="primary-btn">Load preview</button>
+            <button id="download-report" class="secondary-btn" disabled>Download CSV</button>
+          </div>
+          <section class="panel">
+            <div class="panel-heading"><h3 id="report-title">Report preview</h3></div>
+            <div class="table-wrap">
+              <table id="report-table"></table>
+            </div>
+          </section>
+        </section>
+
+        <section id="users" class="screen">
+          <form id="user-form" class="form-grid panel">
+            <label>Full name<input name="fullName" required /></label>
+            <label>Username<input name="username" required /></label>
+            <label>Password<input name="password" type="password" required /></label>
+            <label>Role
+              <select name="role">
+                <option>Standard User</option>
+                <option>Admin</option>
+                <option>ICT Technician</option>
+                <option>Viewer / Auditor</option>
+              </select>
+            </label>
+            <div class="form-actions wide">
+              <button type="submit" class="primary-btn">Create user</button>
+            </div>
+            <p id="user-form-message" class="form-message wide"></p>
+          </form>
+          <section class="panel">
+            <div class="panel-heading"><h3>Active users</h3></div>
+            <div id="user-list" class="record-list"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

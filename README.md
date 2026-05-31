@@ -32,3 +32,22 @@ Offline-first Android application for municipal ICT asset registration, allocati
 This project includes `.github/workflows/android-build.yml`.
 
 After pushing the project to GitHub, open the repository's **Actions** tab and run **Android APK Build**. The workflow builds `app-debug.apk` and uploads it as an artifact named `ict-asset-register-debug-apk`.
+
+## Web Version
+
+The `web/` folder contains a static browser version for colleagues to view assets, manually capture assets, record movements, preview reports, and manage users.
+
+Open locally:
+
+```text
+web/index.html
+```
+
+Deploy on GitHub Pages:
+
+1. Push the project to GitHub.
+2. Open **Settings** > **Pages**.
+3. Set the source to **GitHub Actions**.
+4. Run the **Web App Pages Deploy** workflow.
+
+The current web version stores data in each browser using `localStorage`. To let all colleagues share the same live asset database, connect the web app and Android app to a backend such as Supabase, Firebase, or a municipal API.
