@@ -27,11 +27,27 @@ Offline-first Android application for municipal ICT asset registration, allocati
 2. Allow Gradle to sync and download dependencies.
 3. Run the `app` configuration on an emulator or Android phone.
 
+The Android app now authenticates against Supabase and shares assets, movements,
+search results, dashboards, and reports with the web app. Add these values to the
+untracked `local.properties` file before building locally:
+
+```properties
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_PUBLISHABLE_KEY
+```
+
+Production users sign in with their Supabase email address and app-user password.
+User accounts are created in Supabase Authentication; roles are stored in the
+`public.profiles` table.
+
 ## GitHub Build
 
 This project includes `.github/workflows/android-build.yml`.
 
 After pushing the project to GitHub, open the repository's **Actions** tab and run **Android APK Build**. The workflow builds `app-debug.apk` and uploads it as an artifact named `ict-asset-register-debug-apk`.
+
+Before running the GitHub build, add repository Actions secrets named
+`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
 
 ## Web Version
 
@@ -50,4 +66,7 @@ Deploy on GitHub Pages:
 3. Set the source to **GitHub Actions**.
 4. Run the **Web App Pages Deploy** workflow.
 
-The current web version stores data in each browser using `localStorage`. To let all colleagues share the same live asset database, connect the web app and Android app to a backend such as Supabase, Firebase, or a municipal API.
+The deployed web version connects to the shared Supabase project. When its Supabase
+configuration is empty, it falls back to local demonstration data in `localStorage`.
+The database schema, role policies, audit logging, and setup instructions are in
+`supabase/`.

@@ -504,3 +504,7 @@ th {
     align-items: stretch;
   }
 }
+/* Author styles must not override the HTML hidden attribute. */
+[hidden] {
+  display: none !important;
+}

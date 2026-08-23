@@ -1,13 +1,15 @@
 package za.gov.municipal.ictasset.di
 
 import android.content.Context
+import za.gov.municipal.ictasset.BuildConfig
 import za.gov.municipal.ictasset.data.local.AppDatabase
 import za.gov.municipal.ictasset.data.local.LocalDataSeeder
-import za.gov.municipal.ictasset.data.repository.OfflineAssetRepository
-import za.gov.municipal.ictasset.data.repository.OfflineAuthRepository
 import za.gov.municipal.ictasset.data.repository.OfflineReferenceRepository
-import za.gov.municipal.ictasset.data.repository.OfflineReportRepository
 import za.gov.municipal.ictasset.data.repository.ReportExporter
+import za.gov.municipal.ictasset.data.remote.SupabaseApi
+import za.gov.municipal.ictasset.data.repository.SupabaseAssetRepository
+import za.gov.municipal.ictasset.data.repository.SupabaseAuthRepository
+import za.gov.municipal.ictasset.data.repository.SupabaseReportRepository
 import za.gov.municipal.ictasset.domain.repository.AssetRepository
 import za.gov.municipal.ictasset.domain.repository.AuthRepository
 import za.gov.municipal.ictasset.domain.repository.ReferenceRepository
@@ -28,29 +30,33 @@ class AppContainer(context: Context) {
         auditLogDao = database.auditLogDao()
     )
 
-    val sessionManager = SessionManager()
-
-    val authRepository: AuthRepository = OfflineAuthRepository(
-        userDao = database.userDao(),
-        auditLogDao = database.auditLogDao()
+    private val supabaseApi = SupabaseApi(
+        context = context.applicationContext,
+        projectUrl = BuildConfig.SUPABASE_URL,
+        publishableKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY
     )
+
+    val sessionManager = SessionManager(supabaseApi::signOut)
 
     val referenceRepository: ReferenceRepository = OfflineReferenceRepository(
         referenceDao = database.referenceDao()
     )
 
-    val assetRepository: AssetRepository = OfflineAssetRepository(
-        database = database,
-        assetDao = database.assetDao(),
-        movementDao = database.movementDao(),
-        auditLogDao = database.auditLogDao(),
+    private val supabaseAssetRepository = SupabaseAssetRepository(
+        api = supabaseApi,
+        referenceDao = database.referenceDao(),
         seeder = seeder
     )
 
-    val reportRepository: ReportRepository = OfflineReportRepository(
-        referenceDao = database.referenceDao(),
-        reportDao = database.reportDao(),
-        auditLogDao = database.auditLogDao(),
+    val assetRepository: AssetRepository = supabaseAssetRepository
+
+    val authRepository: AuthRepository = SupabaseAuthRepository(
+        api = supabaseApi,
+        onAuthenticated = supabaseAssetRepository::refresh
+    )
+
+    val reportRepository: ReportRepository = SupabaseReportRepository(
+        assets = supabaseAssetRepository,
         reportExporter = ReportExporter(context.applicationContext)
     )
 

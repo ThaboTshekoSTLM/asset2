@@ -1,4 +1,6 @@
 const STORAGE_KEY = "ict-web-register-state-v1";
+const remoteBackend = window.assetBackend;
+const remoteMode = Boolean(remoteBackend?.enabled);
 
 const seedState = {
   currentUser: null,
@@ -78,12 +80,22 @@ let activeScreen = "dashboard";
 let activeReport = null;
 
 function loadState() {
+  if (remoteMode) return { currentUser: null, users: [], assets: [], movements: [], audits: [] };
   const saved = localStorage.getItem(STORAGE_KEY);
   return saved ? JSON.parse(saved) : structuredClone(seedState);
 }
 
 function saveState() {
+  if (remoteMode) return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+async function refreshRemoteData() {
+  if (!remoteMode || !state.currentUser) return;
+  const data = await remoteBackend.loadData();
+  state.users = data.users;
+  state.assets = data.assets;
+  state.movements = data.movements;
 }
 
 function $(selector) {
@@ -120,7 +132,17 @@ function canManageUsers() {
   return state.currentUser?.role === "Admin";
 }
 
-function signIn(username, password) {
+async function signIn(username, password) {
+  if (remoteMode) {
+    try {
+      state.currentUser = await remoteBackend.signIn(username, password);
+      await refreshRemoteData();
+      return true;
+    } catch (error) {
+      console.error("Sign in failed", error);
+      return false;
+    }
+  }
   const user = state.users.find((item) => item.active && item.username === username && item.password === password);
   if (!user) return false;
   state.currentUser = { id: user.id, fullName: user.fullName, username: user.username, role: user.role };
@@ -128,7 +150,8 @@ function signIn(username, password) {
   return true;
 }
 
-function signOut() {
+async function signOut() {
+  if (remoteMode) await remoteBackend.signOut();
   state.currentUser = null;
   saveState();
   renderAuth();
@@ -322,6 +345,18 @@ async function handleAssetSubmit(event) {
     $("#asset-form-message").textContent = "Serial number already exists.";
     return;
   }
+  if (remoteMode) {
+    try {
+      await remoteBackend.createAsset(data, form.assetPhoto.files[0], state.currentUser);
+      await refreshRemoteData();
+      form.reset();
+      $("#asset-form-message").textContent = "Asset saved to the shared database.";
+      render();
+    } catch (error) {
+      $("#asset-form-message").textContent = error.message || "Unable to save the asset.";
+    }
+    return;
+  }
   const photo = await fileToDataUrl(form.assetPhoto.files[0]);
   const asset = {
     id: crypto.randomUUID(),
@@ -369,7 +404,7 @@ async function handleAssetSubmit(event) {
   render();
 }
 
-function handleMovementSubmit(event) {
+async function handleMovementSubmit(event) {
   event.preventDefault();
   if (!canWriteAssets()) {
     $("#movement-form-message").textContent = "Your role cannot move assets.";
@@ -381,6 +416,18 @@ function handleMovementSubmit(event) {
   const asset = state.assets.find((item) => item.assetBarcode === barcode);
   if (!asset) {
     $("#movement-form-message").textContent = "Asset barcode not found.";
+    return;
+  }
+  if (remoteMode) {
+    try {
+      await remoteBackend.recordMovement(asset.id, data);
+      await refreshRemoteData();
+      form.reset();
+      $("#movement-form-message").textContent = "Movement saved to the shared database.";
+      render();
+    } catch (error) {
+      $("#movement-form-message").textContent = error.message || "Unable to record the movement.";
+    }
     return;
   }
   const previousLocation = `${asset.building} / ${asset.officeNumber} / ${asset.roomBarcode || "-"}`;
@@ -484,6 +531,10 @@ function downloadReport() {
 function handleUserSubmit(event) {
   event.preventDefault();
   if (!canManageUsers()) return;
+  if (remoteMode) {
+    $("#user-form-message").textContent = "Production users must currently be created in Supabase Authentication.";
+    return;
+  }
   const form = event.currentTarget;
   const data = formObject(form);
   const username = data.username.trim().toLowerCase();
@@ -507,6 +558,7 @@ function handleUserSubmit(event) {
 
 function deleteUser(userId) {
   if (!canManageUsers() || userId === state.currentUser.id) return;
+  if (remoteMode) return;
   const user = state.users.find((item) => item.id === userId);
   if (!user) return;
   user.active = false;
@@ -515,9 +567,12 @@ function deleteUser(userId) {
 }
 
 function bindEvents() {
-  $("#login-form").addEventListener("submit", (event) => {
+  $("#login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const ok = signIn($("#login-username").value.trim().toLowerCase(), $("#login-password").value);
+    const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    const ok = await signIn($("#login-username").value.trim().toLowerCase(), $("#login-password").value);
+    submitButton.disabled = false;
     $("#login-error").textContent = ok ? "" : "Invalid username or password.";
     $("#login-error").classList.toggle("error-text", !ok);
     if (ok) renderAuth();
@@ -546,4 +601,18 @@ function bindEvents() {
 }
 
 bindEvents();
-renderAuth();
+
+async function initializeApp() {
+  if (remoteMode) {
+    try {
+      state.currentUser = await remoteBackend.currentUser();
+      if (state.currentUser) await refreshRemoteData();
+    } catch (error) {
+      console.error("Unable to restore session", error);
+      state.currentUser = null;
+    }
+  }
+  renderAuth();
+}
+
+initializeApp();

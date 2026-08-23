@@ -37,6 +37,18 @@ interface ReferenceDao {
     @Query("SELECT * FROM buildings WHERE id = :id LIMIT 1")
     suspend fun findBuildingById(id: Long): BuildingEntity?
 
+    @Query("SELECT * FROM departments WHERE id = :id LIMIT 1")
+    suspend fun findDepartmentById(id: Long): DepartmentEntity?
+
+    @Query("SELECT * FROM departments")
+    suspend fun allDepartments(): List<DepartmentEntity>
+
+    @Query("SELECT * FROM buildings")
+    suspend fun allBuildings(): List<BuildingEntity>
+
+    @Query("SELECT * FROM rooms")
+    suspend fun allRooms(): List<RoomEntity>
+
     @Query(
         """
         SELECT COALESCE(d.name, 'Unassigned') AS departmentName, COUNT(a.id) AS totalAssets
