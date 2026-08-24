@@ -1,6 +1,17 @@
 # ICT Asset Register
 
-Offline-first Android application for municipal ICT asset registration, allocation, movement tracking, audit logging, and local report export.
+Municipal ICT asset management system with an Android application, a browser-based
+web application, and a shared Supabase backend. Both clients use the same users,
+assets, movements, photographs, roles, and reports.
+
+## Live services
+
+- Web app: <https://thabotshekostlm.github.io/asset2/>
+- Source repository: <https://github.com/ThaboTshekoSTLM/asset2>
+- Supabase project: `zspqzluwzuiasabiphdd` (`ICT Asset Register`)
+
+For the complete record of setup, deployment, user administration, testing, and
+troubleshooting, see [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md).
 
 ## Technology
 
@@ -12,14 +23,11 @@ Offline-first Android application for municipal ICT asset registration, allocati
 - Local PDF and Excel-compatible XML exports
 - Offline-first repositories that can be replaced or wrapped by a sync backend later
 
-## Sample Login Accounts
+## Production login
 
-| Role | Username | Password |
-| --- | --- | --- |
-| Admin | `admin` | `admin123` |
-| Standard User | `standard` | `user123` |
-| ICT Technician | `tech` | `tech123` |
-| Viewer / Auditor | `auditor` | `audit123` |
+Production users sign in with an email address and password created in Supabase
+Authentication. Passwords are intentionally not stored in this repository or its
+documentation. The old offline demonstration usernames are not production logins.
 
 ## Open In Android Studio
 
