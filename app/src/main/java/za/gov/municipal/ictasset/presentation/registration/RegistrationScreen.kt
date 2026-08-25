@@ -36,6 +36,7 @@ fun RegistrationScreen(
     onUpdate: ((RegistrationFormState) -> RegistrationFormState) -> Unit,
     onSave: () -> Unit,
     onScanAsset: () -> Unit,
+    onScanSerial: () -> Unit,
     onScanRoom: () -> Unit
 ) {
     if (!user.role.canWriteAssets) {
@@ -76,10 +77,11 @@ fun RegistrationScreen(
                     onValueChange = { value -> onUpdate { it.copy(assetBarcode = value.uppercase()) } },
                     onScan = onScanAsset
                 )
-                AppTextField(
+                BarcodeField(
                     value = state.serialNumber,
                     label = "Serial number",
-                    onValueChange = { value -> onUpdate { it.copy(serialNumber = value.uppercase()) } }
+                    onValueChange = { value -> onUpdate { it.copy(serialNumber = value.uppercase()) } },
+                    onScan = onScanSerial
                 )
                 AssetPhotoCaptureField(
                     photoPath = state.assetPhotoPath,

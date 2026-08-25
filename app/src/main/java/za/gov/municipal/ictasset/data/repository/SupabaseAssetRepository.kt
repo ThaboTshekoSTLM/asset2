@@ -67,9 +67,9 @@ class SupabaseAssetRepository(
 
     override fun searchAssets(query: String): Flow<List<Asset>> = assets.map { list ->
         val needle = query.trim().lowercase()
-        if (needle.isBlank()) list else list.filter {
-            listOf(it.assetBarcode, it.serialNumber, it.currentOwner, it.departmentName, it.buildingName)
-                .joinToString(" ").lowercase().contains(needle)
+        if (needle.isBlank()) emptyList() else list.filter {
+            it.assetBarcode.lowercase().contains(needle) ||
+                it.serialNumber.lowercase().contains(needle)
         }
     }
 
@@ -82,7 +82,12 @@ class SupabaseAssetRepository(
     override suspend fun findAssetByBarcode(barcode: String): Asset? =
         assets.value.firstOrNull { it.assetBarcode.equals(barcode.trim(), true) }
 
-    override suspend fun findAssetById(id: Long): Asset? = assets.value.firstOrNull { it.id == id }
+    override suspend fun findAssetById(id: Long): Asset? {
+        val asset = assets.value.firstOrNull { it.id == id } ?: return null
+        val photoPath = asset.assetPhotoPath?.takeIf { it.isNotBlank() } ?: return asset
+        val cachedPath = runCatching { api.downloadAssetPhotoToCache(photoPath) }.getOrNull()
+        return asset.copy(assetPhotoPath = cachedPath)
+    }
 
     override suspend fun registerAsset(request: RegisterAssetRequest, actor: User): SaveResult {
         return try {
@@ -95,6 +100,8 @@ class SupabaseAssetRepository(
         }
         val remoteId = UUID.randomUUID().toString()
         val userId = api.userId ?: return SaveResult.Error("Please sign in again.")
+        val remotePhotoPath = request.assetPhotoPath.takeIf { it.isNotBlank() }
+            ?.let { api.uploadCompressedAssetPhoto(it, remoteId) }
         val row = api.insertAsset(JSONObject()
             .put("id", remoteId)
             .put("device_description", request.deviceDescription.trim())
@@ -110,6 +117,7 @@ class SupabaseAssetRepository(
             .put("technician", actor.fullName)
             .put("movement_type", request.movementType.apiValue())
             .put("notes", request.notes.trim())
+            .put("photo_path", remotePhotoPath ?: JSONObject.NULL)
             .put("created_by", userId)
             .put("updated_by", userId))
         api.insertMovement(JSONObject()

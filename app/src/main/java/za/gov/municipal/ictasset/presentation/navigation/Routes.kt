@@ -18,6 +18,7 @@ object Routes {
 
 object ScanKeys {
     const val REGISTER_ASSET = "scan_register_asset"
+    const val REGISTER_SERIAL = "scan_register_serial"
     const val REGISTER_ROOM = "scan_register_room"
     const val MOVE_ASSET = "scan_move_asset"
     const val MOVE_ROOM = "scan_move_room"

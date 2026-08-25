@@ -186,6 +186,9 @@ private fun AssetNavHost(container: AppContainer) {
                 val assetScan by entry.savedStateHandle
                     .getStateFlow(ScanKeys.REGISTER_ASSET, "")
                     .collectAsStateWithLifecycle()
+                val serialScan by entry.savedStateHandle
+                    .getStateFlow(ScanKeys.REGISTER_SERIAL, "")
+                    .collectAsStateWithLifecycle()
                 val roomScan by entry.savedStateHandle
                     .getStateFlow(ScanKeys.REGISTER_ROOM, "")
                     .collectAsStateWithLifecycle()
@@ -193,6 +196,12 @@ private fun AssetNavHost(container: AppContainer) {
                     if (assetScan.isNotBlank()) {
                         viewModel.setAssetBarcode(assetScan)
                         entry.savedStateHandle[ScanKeys.REGISTER_ASSET] = ""
+                    }
+                }
+                LaunchedEffect(serialScan) {
+                    if (serialScan.isNotBlank()) {
+                        viewModel.update { it.copy(serialNumber = serialScan.trim().uppercase()) }
+                        entry.savedStateHandle[ScanKeys.REGISTER_SERIAL] = ""
                     }
                 }
                 LaunchedEffect(roomScan) {
@@ -209,6 +218,7 @@ private fun AssetNavHost(container: AppContainer) {
                         onUpdate = viewModel::update,
                         onSave = { viewModel.save(signedIn) },
                         onScanAsset = { navController.navigate(Routes.scanner(ScanKeys.REGISTER_ASSET)) },
+                        onScanSerial = { navController.navigate(Routes.scanner(ScanKeys.REGISTER_SERIAL)) },
                         onScanRoom = { navController.navigate(Routes.scanner(ScanKeys.REGISTER_ROOM)) }
                     )
                 }
@@ -344,5 +354,6 @@ private fun routeTitle(route: String?): String =
 private fun scannerTitle(target: String): String =
     when (target) {
         ScanKeys.REGISTER_ROOM, ScanKeys.MOVE_ROOM -> "Scan room barcode"
+        ScanKeys.REGISTER_SERIAL -> "Scan serial number"
         else -> "Scan asset barcode"
     }

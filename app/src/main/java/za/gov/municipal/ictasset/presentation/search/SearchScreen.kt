@@ -83,7 +83,7 @@ private fun AssetSearchCard(
             Text("Owner: ${asset.currentOwner}")
             Text("Department: ${asset.departmentName.orEmpty()} / ${asset.section}")
             Text("Building: ${asset.buildingName.orEmpty()} | Office: ${asset.officeNumber}")
-            AssetPhotoPreview(photoPath = asset.assetPhotoPath)
+            Text("Tap to view this device and its photo", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
