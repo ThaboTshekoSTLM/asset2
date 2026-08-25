@@ -136,6 +136,9 @@ button {
 
 .main-area {
   min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -180,6 +183,15 @@ button {
 
 .active-screen {
   display: block;
+  flex: 1;
+}
+
+.app-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
 }
 
 .metric-grid {
@@ -578,6 +590,10 @@ th {
 
   .screen {
     padding: 16px;
+  }
+
+  .app-footer {
+    padding: 14px 16px;
   }
 }
 
