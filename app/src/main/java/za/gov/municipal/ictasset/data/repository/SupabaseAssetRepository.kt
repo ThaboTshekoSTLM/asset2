@@ -127,7 +127,10 @@ class SupabaseAssetRepository(
             .put("technician", actor.fullName)
             .put("confirmation", actor.fullName)
             .put("created_by", userId))
-        refresh()
+        // The asset and its initial movement are already committed. A refresh
+        // problem must not report the completed registration as a failure and
+        // encourage the user to submit the same barcode again.
+        runCatching { refresh() }
         SaveResult.Success(stableLong(remoteId))
     } catch (error: Exception) {
         SaveResult.Error(error.message ?: "Unable to save asset to Supabase.")

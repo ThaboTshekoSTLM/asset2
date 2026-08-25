@@ -78,8 +78,13 @@ class RegistrationViewModel(
 
     fun save(actor: User) {
         val state = _formState.value
+        if (state.saving) return
+
+        // Lock the form before launching the coroutine. Setting this inside the
+        // coroutine leaves a small window where two quick taps can submit the
+        // same barcode twice.
+        _formState.update { it.copy(saving = true, message = null) }
         viewModelScope.launch {
-            _formState.update { it.copy(saving = true, message = null) }
             val result = registerAssetUseCase(
                 RegisterAssetRequest(
                     deviceDescription = state.deviceDescription,
