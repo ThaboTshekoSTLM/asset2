@@ -308,7 +308,110 @@ async function openAssetDetail(assetId) {
       <p><strong>Notes</strong><span>${text(asset.notes || "-")}</span></p>
     </div>
     ${photoUrl ? `<img class="asset-detail-photo" src="${text(photoUrl)}" alt="Photo of ${text(asset.assetBarcode)}" />` : `<p class="no-photo">No photo is stored for this device.</p>`}
+    ${canManageUsers() ? `
+      <div class="admin-asset-actions">
+        <button type="button" class="secondary-btn" data-edit-asset="${text(asset.id)}">Edit device</button>
+        <button type="button" class="danger-btn" data-archive-asset="${text(asset.id)}">Delete device</button>
+      </div>
+    ` : ""}
   `;
+}
+
+function openAssetEdit(assetId) {
+  if (!canManageUsers()) return;
+  const asset = state.assets.find((item) => item.id === assetId);
+  if (!asset) return;
+  $("#asset-detail-content").innerHTML = `
+    <form id="asset-edit-form" class="form-grid" data-asset-id="${text(asset.id)}">
+      <label>Device description<input name="deviceDescription" value="${text(asset.deviceDescription)}" required /></label>
+      <label>Asset barcode<input name="assetBarcode" value="${text(asset.assetBarcode)}" required /></label>
+      <label>Serial number<input name="serialNumber" value="${text(asset.serialNumber)}" required /></label>
+      <label>Department<input name="department" value="${text(asset.department)}" required /></label>
+      <label>Section<input name="section" value="${text(asset.section)}" /></label>
+      <label>Building<input name="building" value="${text(asset.building)}" required /></label>
+      <label>Office number<input name="officeNumber" value="${text(asset.officeNumber)}" required /></label>
+      <label>Room barcode<input name="roomBarcode" value="${text(asset.roomBarcode)}" /></label>
+      <label>Current owner<input name="currentOwner" value="${text(asset.currentOwner)}" required /></label>
+      <label>Previous owner<input name="previousOwner" value="${text(asset.previousOwner)}" /></label>
+      <label>Technician<input name="technician" value="${text(asset.technician)}" required /></label>
+      <label>Movement type
+        <select name="movementType">${["New allocation", "Transfer", "Return", "Repair", "Disposal"].map(
+          (value) => `<option ${value === asset.movementType ? "selected" : ""}>${value}</option>`
+        ).join("")}</select>
+      </label>
+      <label class="wide">Replace photo<input name="assetPhoto" type="file" accept="image/*" capture="environment" /></label>
+      <label class="wide">Notes<textarea name="notes" rows="3">${text(asset.notes)}</textarea></label>
+      <div class="form-actions wide">
+        <button type="button" class="secondary-btn" data-cancel-asset-edit="${text(asset.id)}">Cancel</button>
+        <button type="submit" class="primary-btn">Save changes</button>
+      </div>
+      <p id="asset-edit-message" class="form-message wide"></p>
+    </form>
+  `;
+}
+
+async function handleAssetEdit(event) {
+  event.preventDefault();
+  if (!canManageUsers()) return;
+  const form = event.currentTarget;
+  const asset = state.assets.find((item) => item.id === form.dataset.assetId);
+  if (!asset) return;
+  const data = formObject(form);
+  const duplicate = state.assets.find((item) => item.id !== asset.id && (
+    item.assetBarcode === data.assetBarcode.trim().toUpperCase() ||
+    item.serialNumber === data.serialNumber.trim().toUpperCase()
+  ));
+  if (duplicate) {
+    $("#asset-edit-message").textContent = "Another device already uses that barcode or serial number.";
+    return;
+  }
+  try {
+    if (remoteMode) {
+      await remoteBackend.updateAsset(asset, data, form.assetPhoto.files[0], state.currentUser);
+      await refreshRemoteData();
+    } else {
+      Object.assign(asset, {
+        deviceDescription: data.deviceDescription.trim(),
+        assetBarcode: data.assetBarcode.trim().toUpperCase(),
+        serialNumber: data.serialNumber.trim().toUpperCase(),
+        department: data.department.trim(),
+        section: data.section.trim(),
+        building: data.building.trim(),
+        officeNumber: data.officeNumber.trim(),
+        roomBarcode: data.roomBarcode.trim().toUpperCase(),
+        currentOwner: data.currentOwner.trim(),
+        previousOwner: data.previousOwner.trim(),
+        technician: data.technician.trim(),
+        movementType: data.movementType,
+        notes: data.notes.trim()
+      });
+      saveState();
+    }
+    render();
+    await openAssetDetail(asset.id);
+  } catch (error) {
+    $("#asset-edit-message").textContent = error.message || "Unable to update this device.";
+  }
+}
+
+async function archiveAsset(assetId) {
+  if (!canManageUsers()) return;
+  const asset = state.assets.find((item) => item.id === assetId);
+  if (!asset || !window.confirm(`Delete ${asset.deviceDescription} (${asset.assetBarcode})? Its audit and movement history will be retained.`)) return;
+  try {
+    if (remoteMode) {
+      await remoteBackend.archiveAsset(asset.id, state.currentUser);
+      await refreshRemoteData();
+    } else {
+      state.assets = state.assets.filter((item) => item.id !== asset.id);
+      saveState();
+    }
+    $("#asset-detail-dialog").close();
+    $("#asset-search").value = "";
+    render();
+  } catch (error) {
+    window.alert(error.message || "Unable to delete this device.");
+  }
 }
 
 async function scanSerialImage(file) {
@@ -696,6 +799,9 @@ function bindEvents() {
     renderAssets();
   });
   $("#asset-form").addEventListener("submit", handleAssetSubmit);
+  $("#asset-detail-content").addEventListener("submit", (event) => {
+    if (event.target.matches("#asset-edit-form")) handleAssetEdit(event);
+  });
   $("#scan-serial").addEventListener("click", () => $("#serial-scan-image").click());
   $("#serial-scan-image").addEventListener("change", (event) => scanSerialImage(event.target.files[0]));
   $("#close-asset-detail").addEventListener("click", () => $("#asset-detail-dialog").close());
@@ -708,6 +814,12 @@ function bindEvents() {
     if (deleteButton) deleteUser(deleteButton.dataset.deleteUser);
     const assetButton = event.target.closest("[data-open-asset]");
     if (assetButton) openAssetDetail(assetButton.dataset.openAsset);
+    const editAssetButton = event.target.closest("[data-edit-asset]");
+    if (editAssetButton) openAssetEdit(editAssetButton.dataset.editAsset);
+    const cancelAssetEdit = event.target.closest("[data-cancel-asset-edit]");
+    if (cancelAssetEdit) openAssetDetail(cancelAssetEdit.dataset.cancelAssetEdit);
+    const archiveAssetButton = event.target.closest("[data-archive-asset]");
+    if (archiveAssetButton) archiveAsset(archiveAssetButton.dataset.archiveAsset);
   });
 }
 

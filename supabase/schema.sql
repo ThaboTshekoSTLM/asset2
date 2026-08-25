@@ -46,6 +46,8 @@ create table public.assets (
   movement_type public.movement_type not null default 'new_allocation',
   notes text not null default '',
   photo_path text,
+  deleted_at timestamptz,
+  deleted_by uuid references public.profiles(id),
   created_by uuid references public.profiles(id),
   updated_by uuid references public.profiles(id),
   created_at timestamptz not null default now(),
@@ -260,16 +262,16 @@ on public.profiles for update to authenticated
 using (public.is_admin()) with check (public.is_admin());
 
 create policy "authenticated users read assets"
-on public.assets for select to authenticated using (true);
+on public.assets for select to authenticated using (deleted_at is null);
 
 create policy "writers insert assets"
 on public.assets for insert to authenticated
 with check (public.can_write_assets() and created_by = auth.uid());
 
-create policy "writers update assets"
+create policy "admins update assets"
 on public.assets for update to authenticated
-using (public.can_write_assets())
-with check (public.can_write_assets() and updated_by = auth.uid());
+using (public.is_admin())
+with check (public.is_admin() and updated_by = auth.uid());
 
 create policy "admins delete assets"
 on public.assets for delete to authenticated using (public.is_admin());
@@ -322,4 +324,3 @@ grant execute on function public.is_admin() to authenticated;
 grant execute on function public.record_asset_movement(
   uuid, text, text, text, text, text, text, public.movement_type, text, text, text
 ) to authenticated;
-

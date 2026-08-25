@@ -49,7 +49,8 @@
       movementType: movementLabels[row.movement_type] || row.movement_type,
       notes: row.notes,
       photoPath: row.photo_path || "",
-      photo: ""
+      photo: "",
+      deletedAt: row.deleted_at
     };
   }
 
@@ -95,7 +96,7 @@
 
   async function loadData() {
     const [assetsResult, movementsResult, profilesResult] = await Promise.all([
-      client.from("assets").select("*").order("registered_at", { ascending: false }),
+      client.from("assets").select("*").is("deleted_at", null).order("registered_at", { ascending: false }),
       client.from("asset_movements").select("*").order("movement_date", { ascending: false }),
       client.from("profiles").select("*").order("full_name"),
     ]);
@@ -206,6 +207,38 @@
     if (error) throw error;
   }
 
+  async function updateAsset(asset, data, photoFile, user) {
+    const photoPath = photoFile ? await uploadPhoto(photoFile, asset.id) : asset.photoPath || null;
+    const payload = {
+      device_description: data.deviceDescription.trim(),
+      asset_barcode: data.assetBarcode.trim().toUpperCase(),
+      serial_number: data.serialNumber.trim().toUpperCase(),
+      department: data.department.trim(),
+      section: data.section.trim(),
+      building: data.building.trim(),
+      office_number: data.officeNumber.trim(),
+      room_barcode: data.roomBarcode.trim().toUpperCase(),
+      current_owner: data.currentOwner.trim(),
+      previous_owner: data.previousOwner.trim(),
+      technician: data.technician.trim(),
+      movement_type: movementValues[data.movementType],
+      notes: data.notes.trim(),
+      photo_path: photoPath,
+      updated_by: user.id
+    };
+    const { error } = await client.from("assets").update(payload).eq("id", asset.id);
+    if (error) throw error;
+  }
+
+  async function archiveAsset(assetId, user) {
+    const { error } = await client.from("assets").update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: user.id,
+      updated_by: user.id
+    }).eq("id", assetId);
+    if (error) throw error;
+  }
+
   window.assetBackend = {
     enabled,
     currentUser,
@@ -217,6 +250,8 @@
     },
     loadData,
     createAsset,
+    updateAsset,
+    archiveAsset,
     recordMovement
   };
 })();

@@ -452,6 +452,15 @@ th {
   color: var(--muted);
 }
 
+.admin-asset-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
 .asset-card-header,
 .record-card-header,
 .user-card {
