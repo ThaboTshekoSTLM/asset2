@@ -48,7 +48,8 @@
       movedAt: row.moved_at,
       movementType: movementLabels[row.movement_type] || row.movement_type,
       notes: row.notes,
-      photo: row.photo_path ? `${config.supabaseUrl}/storage/v1/object/authenticated/asset-photos/${row.photo_path}` : ""
+      photoPath: row.photo_path || "",
+      photo: ""
     };
   }
 
@@ -112,11 +113,37 @@
 
   async function uploadPhoto(file, assetId) {
     if (!file) return null;
-    const extension = (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "").toLowerCase();
-    const path = `${assetId}/${crypto.randomUUID()}.${extension}`;
-    const { error } = await client.storage.from("asset-photos").upload(path, file, { upsert: false });
+    const compressed = await compressPhoto(file);
+    const path = `${assetId}/${crypto.randomUUID()}.jpg`;
+    const { error } = await client.storage.from("asset-photos").upload(path, compressed, {
+      contentType: "image/jpeg",
+      upsert: false
+    });
     if (error) throw error;
     return path;
+  }
+
+  async function compressPhoto(file) {
+    const bitmap = await createImageBitmap(file);
+    const longestSide = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, 960 / longestSide);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    return new Promise((resolve, reject) => canvas.toBlob(
+      (blob) => blob ? resolve(blob) : reject(new Error("Unable to compress asset photo.")),
+      "image/jpeg",
+      0.48
+    ));
+  }
+
+  async function photoUrl(path) {
+    if (!path) return "";
+    const { data, error } = await client.storage.from("asset-photos").createSignedUrl(path, 300);
+    if (error) throw error;
+    return data.signedUrl;
   }
 
   async function createAsset(data, photoFile, user) {
@@ -183,6 +210,7 @@
     enabled,
     currentUser,
     signIn,
+    photoUrl,
     signOut: async () => {
       const { error } = await client.auth.signOut();
       if (error) throw error;
@@ -192,4 +220,3 @@
     recordMovement
   };
 })();
-

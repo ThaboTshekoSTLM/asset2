@@ -374,6 +374,84 @@ th {
   gap: 5px;
 }
 
+.asset-card-button {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.asset-card-button:hover {
+  border-color: var(--primary);
+}
+
+.open-device-hint {
+  color: var(--primary) !important;
+  font-weight: 700;
+}
+
+.asset-detail-dialog {
+  width: min(720px, calc(100% - 32px));
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.asset-detail-dialog::backdrop {
+  background: rgb(15 23 42 / 55%);
+}
+
+.dialog-heading,
+.input-action-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.dialog-heading {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dialog-heading h3 {
+  margin: 0;
+}
+
+.input-action-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.asset-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.asset-detail-grid p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.asset-detail-photo {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  margin-top: 18px;
+  border-radius: 8px;
+  background: #eef2f0;
+}
+
+.no-photo {
+  margin-top: 18px;
+  color: var(--muted);
+}
+
 .asset-card-header,
 .record-card-header,
 .user-card {
@@ -502,6 +580,15 @@ th {
   .user-card {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .asset-detail-grid,
+  .input-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .input-action-row {
+    display: grid;
   }
 }
 /* Author styles must not override the HTML hidden attribute. */

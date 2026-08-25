@@ -188,15 +188,7 @@ function setScreen(screen) {
 }
 
 function assetMatches(asset, query) {
-  const haystack = [
-    asset.assetBarcode,
-    asset.serialNumber,
-    asset.currentOwner,
-    asset.department,
-    asset.building,
-    asset.roomBarcode,
-    asset.deviceDescription
-  ].join(" ").toLowerCase();
+  const haystack = [asset.assetBarcode, asset.serialNumber].join(" ").toLowerCase();
   return haystack.includes(query.toLowerCase());
 }
 
@@ -244,8 +236,9 @@ function renderStatus(type) {
 
 function renderAssets() {
   const query = $("#asset-search").value.trim();
-  const assets = query ? state.assets.filter((asset) => assetMatches(asset, query)) : state.assets;
-  $("#asset-list").innerHTML = assets.map(assetCard).join("") || emptyCard("No assets found.");
+  const assets = query ? state.assets.filter((asset) => assetMatches(asset, query)) : [];
+  $("#asset-list").innerHTML = assets.map(assetCard).join("") ||
+    emptyCard(query ? "No matching barcode or serial number found." : "Enter a barcode or serial number to find one device.");
 }
 
 function renderMovements() {
@@ -271,7 +264,7 @@ function renderUsers() {
 
 function assetCard(asset) {
   return `
-    <article class="asset-card">
+    <button type="button" class="asset-card asset-card-button" data-open-asset="${text(asset.id)}">
       <div class="asset-card-header">
         <div>
           <h4>${text(asset.deviceDescription)}</h4>
@@ -283,9 +276,60 @@ function assetCard(asset) {
       <p>Department: ${text(asset.department)} / ${text(asset.section || "-")}</p>
       <p>Location: ${text(asset.building)} · ${text(asset.officeNumber)} · ${text(asset.roomBarcode || "-")}</p>
       <p>Registered: ${formatDate(asset.registeredAt)}</p>
-      ${asset.photo ? `<img class="photo-thumb" src="${asset.photo}" alt="Asset photo for ${text(asset.assetBarcode)}" />` : ""}
-    </article>
+      <p class="open-device-hint">Open device details${asset.photoPath || asset.photo ? " and photo" : ""}</p>
+    </button>
   `;
+}
+
+async function openAssetDetail(assetId) {
+  const asset = state.assets.find((item) => item.id === assetId);
+  if (!asset) return;
+  const content = $("#asset-detail-content");
+  content.innerHTML = `<p>Loading device...</p>`;
+  $("#asset-detail-dialog").showModal();
+  let photoUrl = asset.photo || "";
+  if (remoteMode && asset.photoPath) {
+    try {
+      photoUrl = await remoteBackend.photoUrl(asset.photoPath);
+    } catch (error) {
+      console.error("Unable to load asset photo", error);
+    }
+  }
+  content.innerHTML = `
+    <div class="asset-detail-grid">
+      <p><strong>Device</strong><span>${text(asset.deviceDescription)}</span></p>
+      <p><strong>Asset barcode</strong><span>${text(asset.assetBarcode)}</span></p>
+      <p><strong>Serial number</strong><span>${text(asset.serialNumber)}</span></p>
+      <p><strong>Owner</strong><span>${text(asset.currentOwner || "Unassigned")}</span></p>
+      <p><strong>Department</strong><span>${text(asset.department)} / ${text(asset.section || "-")}</span></p>
+      <p><strong>Location</strong><span>${text(asset.building)} · ${text(asset.officeNumber)} · ${text(asset.roomBarcode || "-")}</span></p>
+      <p><strong>Technician</strong><span>${text(asset.technician)}</span></p>
+      <p><strong>Movement type</strong><span>${text(asset.movementType)}</span></p>
+      <p><strong>Notes</strong><span>${text(asset.notes || "-")}</span></p>
+    </div>
+    ${photoUrl ? `<img class="asset-detail-photo" src="${text(photoUrl)}" alt="Photo of ${text(asset.assetBarcode)}" />` : `<p class="no-photo">No photo is stored for this device.</p>`}
+  `;
+}
+
+async function scanSerialImage(file) {
+  if (!file) return;
+  const message = $("#asset-form-message");
+  if (!("BarcodeDetector" in window)) {
+    message.textContent = "Serial scanning is not supported by this browser. Please type the serial number.";
+    return;
+  }
+  try {
+    const detector = new BarcodeDetector();
+    const bitmap = await createImageBitmap(file);
+    const codes = await detector.detect(bitmap);
+    bitmap.close();
+    const value = codes[0]?.rawValue?.trim();
+    if (!value) throw new Error("No barcode was detected on the serial label.");
+    $("#asset-form").elements.serialNumber.value = value.toUpperCase();
+    message.textContent = "Serial number scanned. Please verify it before saving.";
+  } catch (error) {
+    message.textContent = error.message || "Unable to scan the serial label.";
+  }
 }
 
 function movementCard(movement) {
@@ -498,8 +542,7 @@ function buildReport() {
       asset.registeredAt,
       asset.movedAt,
       asset.movementType,
-      asset.notes,
-      asset.photo
+      asset.notes
     ];
     const assets = state.assets.filter((asset) =>
       !filter || fieldsFor(asset).some((value) => String(value ?? "").toLowerCase().includes(filter))
@@ -522,8 +565,7 @@ function buildReport() {
         "Date registered",
         "Date moved",
         "Movement type",
-        "Notes",
-        "Photo"
+        "Notes"
       ],
       rows: assets.map((asset) => [
         asset.id,
@@ -541,8 +583,7 @@ function buildReport() {
         formatDateTime(asset.registeredAt),
         asset.movedAt ? formatDateTime(asset.movedAt) : "",
         asset.movementType,
-        asset.notes,
-        asset.photo
+        asset.notes
       ])
     };
   }
@@ -655,6 +696,9 @@ function bindEvents() {
     renderAssets();
   });
   $("#asset-form").addEventListener("submit", handleAssetSubmit);
+  $("#scan-serial").addEventListener("click", () => $("#serial-scan-image").click());
+  $("#serial-scan-image").addEventListener("change", (event) => scanSerialImage(event.target.files[0]));
+  $("#close-asset-detail").addEventListener("click", () => $("#asset-detail-dialog").close());
   $("#movement-form").addEventListener("submit", handleMovementSubmit);
   $("#load-report").addEventListener("click", renderReport);
   $("#download-report").addEventListener("click", downloadReport);
@@ -662,6 +706,8 @@ function bindEvents() {
   document.addEventListener("click", (event) => {
     const deleteButton = event.target.closest("[data-delete-user]");
     if (deleteButton) deleteUser(deleteButton.dataset.deleteUser);
+    const assetButton = event.target.closest("[data-open-asset]");
+    if (assetButton) openAssetDetail(assetButton.dataset.openAsset);
   });
 }
 

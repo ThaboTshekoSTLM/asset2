@@ -127,17 +127,30 @@
 
         <section id="assets" class="screen">
           <div class="toolbar">
-            <input id="asset-search" class="search-input" placeholder="Search barcode, serial, owner, department, building" />
+            <input id="asset-search" class="search-input" placeholder="Search by asset barcode or serial number" />
             <button id="clear-search" class="secondary-btn">Clear</button>
           </div>
           <div id="asset-list" class="asset-list"></div>
+          <dialog id="asset-detail-dialog" class="asset-detail-dialog">
+            <div class="dialog-heading">
+              <h3>Device details</h3>
+              <button id="close-asset-detail" class="secondary-btn" type="button">Close</button>
+            </div>
+            <div id="asset-detail-content"></div>
+          </dialog>
         </section>
 
         <section id="capture" class="screen">
           <form id="asset-form" class="form-grid panel">
             <label>Device description<input name="deviceDescription" required /></label>
             <label>Asset barcode<input name="assetBarcode" required /></label>
-            <label>Serial number<input name="serialNumber" required /></label>
+            <label>Serial number
+              <span class="input-action-row">
+                <input name="serialNumber" required />
+                <button id="scan-serial" type="button" class="secondary-btn">Scan label</button>
+              </span>
+              <input id="serial-scan-image" type="file" accept="image/*" capture="environment" hidden />
+            </label>
             <label>Department<input name="department" required /></label>
             <label>Section<input name="section" /></label>
             <label>Building name<input name="building" required /></label>
