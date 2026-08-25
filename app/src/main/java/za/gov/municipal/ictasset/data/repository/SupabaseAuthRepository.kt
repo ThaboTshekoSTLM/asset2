@@ -17,18 +17,20 @@ class SupabaseAuthRepository(
     private val users = MutableStateFlow<List<User>>(emptyList())
 
     override suspend fun login(username: String, password: String): User? {
-        return try {
-            val email = username.trim().lowercase().let {
-                if ('@' in it) it else "$it@ict-register.local"
-            }
-            val profile = api.login(email, password)
-            if (!profile.optBoolean("active", true)) return null
-            refreshUsers()
-            onAuthenticated()
-            profile.toUser()
-        } catch (_: Exception) {
-            null
+        val email = username.trim().lowercase().let {
+            if ('@' in it) it else "$it@ict-register.local"
         }
+        val profile = api.login(email, password)
+        if (!profile.optBoolean("active", true)) {
+            error("This user account is inactive.")
+        }
+
+        // Authentication has succeeded at this point. A temporary failure while
+        // refreshing application data must not turn a valid login into an
+        // "invalid credentials" result.
+        runCatching { refreshUsers() }
+        runCatching { onAuthenticated() }
+        return profile.toUser()
     }
 
     override suspend fun findUser(id: Long): User? = users.value.firstOrNull { it.id == id }

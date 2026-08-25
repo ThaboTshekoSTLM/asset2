@@ -481,6 +481,71 @@ function buildReport() {
     });
     return Array.from(map.entries()).map(([name, total]) => [name, total]);
   };
+  if (type === "complete") {
+    const fieldsFor = (asset) => [
+      asset.id,
+      asset.deviceDescription,
+      asset.assetBarcode,
+      asset.serialNumber,
+      asset.department,
+      asset.section,
+      asset.building,
+      asset.officeNumber,
+      asset.roomBarcode,
+      asset.currentOwner,
+      asset.previousOwner,
+      asset.technician,
+      asset.registeredAt,
+      asset.movedAt,
+      asset.movementType,
+      asset.notes,
+      asset.photo
+    ];
+    const assets = state.assets.filter((asset) =>
+      !filter || fieldsFor(asset).some((value) => String(value ?? "").toLowerCase().includes(filter))
+    );
+    return {
+      title: `Complete asset register (${assets.length} asset${assets.length === 1 ? "" : "s"})`,
+      headers: [
+        "Asset ID",
+        "Device description",
+        "Asset barcode",
+        "Serial number",
+        "Department",
+        "Section",
+        "Building",
+        "Office number",
+        "Room barcode",
+        "Current owner",
+        "Previous owner",
+        "Technician",
+        "Date registered",
+        "Date moved",
+        "Movement type",
+        "Notes",
+        "Photo"
+      ],
+      rows: assets.map((asset) => [
+        asset.id,
+        asset.deviceDescription,
+        asset.assetBarcode,
+        asset.serialNumber,
+        asset.department,
+        asset.section,
+        asset.building,
+        asset.officeNumber,
+        asset.roomBarcode,
+        asset.currentOwner,
+        asset.previousOwner,
+        asset.technician,
+        formatDateTime(asset.registeredAt),
+        asset.movedAt ? formatDateTime(asset.movedAt) : "",
+        asset.movementType,
+        asset.notes,
+        asset.photo
+      ])
+    };
+  }
   if (type === "department") return { title: "Assets per department", headers: ["Department", "Total"], rows: groupCount(state.assets, (a) => a.department) };
   if (type === "building") return { title: "Assets per building", headers: ["Building", "Total"], rows: groupCount(state.assets, (a) => a.building) };
   if (type === "owner") {

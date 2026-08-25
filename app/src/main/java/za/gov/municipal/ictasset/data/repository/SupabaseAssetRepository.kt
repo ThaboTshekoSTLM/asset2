@@ -43,15 +43,18 @@ class SupabaseAssetRepository(
         val roomIds = referenceDao.allRooms().associate { it.roomBarcode to it.id }
         val assetRows = api.fetchAssets().jsonObjects()
         remoteAssetIds.clear()
-        assets.value = assetRows.map { row ->
-            val remoteId = row.getString("id")
+        assets.value = assetRows.mapNotNull { row ->
+            val remoteId = row.optString("id").takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
             val localId = stableLong(remoteId)
             remoteAssetIds[localId] = remoteId
             row.toAsset(localId, departmentIds, buildingIds, roomIds)
         }
         val assetsByRemoteId = assets.value.associateBy { remoteAssetIds[it.id] }
-        movements.value = api.fetchMovements().jsonObjects().map { row ->
-            row.toMovement(assetsByRemoteId[row.getString("asset_id")], departmentIds, buildingIds, roomIds)
+        movements.value = api.fetchMovements().jsonObjects().mapNotNull { row ->
+            val assetId = row.optString("asset_id").takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            row.toMovement(assetsByRemoteId[assetId], departmentIds, buildingIds, roomIds)
         }
     }
 
@@ -167,9 +170,9 @@ private fun JSONObject.toAsset(
     rooms: Map<String, Long>
 ): Asset = Asset(
     id = localId,
-    deviceDescription = getString("device_description"),
-    assetBarcode = getString("asset_barcode"),
-    serialNumber = getString("serial_number"),
+    deviceDescription = optString("device_description"),
+    assetBarcode = optString("asset_barcode"),
+    serialNumber = optString("serial_number"),
     departmentId = departments[optString("department")],
     departmentName = optString("department"),
     section = optString("section"),
@@ -220,7 +223,9 @@ private fun JSONObject.toMovement(
 )
 
 private fun JSONObject.optInstant(name: String): Long =
-    optString(name).takeIf { it.isNotBlank() }?.let { Instant.parse(it).toEpochMilli() } ?: 0L
+    optString(name).takeIf { it.isNotBlank() && it != "null" }
+        ?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrDefault(0L) }
+        ?: 0L
 
 private fun MovementType.apiValue(): String = name.lowercase()
 

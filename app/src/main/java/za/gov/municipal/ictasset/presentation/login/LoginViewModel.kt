@@ -41,7 +41,18 @@ class LoginViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
-            val user = authRepository.login(state.username, state.password)
+            val user = try {
+                authRepository.login(state.username, state.password)
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        loading = false,
+                        error = error.message?.takeIf(String::isNotBlank)
+                            ?: "Unable to sign in. Check your connection and try again."
+                    )
+                }
+                return@launch
+            }
             if (user == null) {
                 _uiState.update {
                     it.copy(loading = false, error = "Invalid login or inactive user.")

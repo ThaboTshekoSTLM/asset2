@@ -110,7 +110,7 @@ fun BarcodeScannerScreen(
     }
 }
 
-@OptIn(ExperimentalGetImage::class)
+@androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
 private fun CameraPreview(
     onBarcodeScanned: (String) -> Unit,
