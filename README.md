@@ -13,6 +13,10 @@ assets, movements, photographs, roles, and reports.
 For the complete record of setup, deployment, user administration, testing, and
 troubleshooting, see [docs/PROJECT_SETUP.md](docs/PROJECT_SETUP.md).
 
+For the complete system design, data model, security model, application flows,
+deployment topology, and maintenance roadmap, see
+[docs/PROJECT_BLUEPRINT.md](docs/PROJECT_BLUEPRINT.md).
+
 ## Technology
 
 - Kotlin
