@@ -54,7 +54,14 @@ class SupabaseApi(
         request("GET", "/rest/v1/profiles?select=*&order=full_name.asc", authenticated = true) as JSONArray
 
     suspend fun fetchAssets(): JSONArray =
-        request("GET", "/rest/v1/assets?select=*&order=registered_at.desc", authenticated = true) as JSONArray
+        request("GET", "/rest/v1/assets?select=*&deleted_at=is.null&order=registered_at.desc", authenticated = true) as JSONArray
+
+    suspend fun archiveAsset(id: String) {
+        request("PATCH", "/rest/v1/assets?id=eq.$id", JSONObject()
+            .put("deleted_at", java.time.Instant.now().toString())
+            .put("deleted_by", userId ?: error("Please sign in again."))
+            .put("updated_by", userId), authenticated = true)
+    }
 
     suspend fun fetchMovements(): JSONArray =
         request("GET", "/rest/v1/asset_movements?select=*&order=movement_date.desc", authenticated = true) as JSONArray

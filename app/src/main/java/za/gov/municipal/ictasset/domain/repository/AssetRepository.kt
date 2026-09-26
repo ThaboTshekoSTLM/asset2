@@ -10,6 +10,8 @@ import za.gov.municipal.ictasset.domain.model.SaveResult
 import za.gov.municipal.ictasset.domain.model.User
 
 interface AssetRepository {
+    suspend fun archiveAsset(assetId: Long, actor: User): SaveResult =
+        SaveResult.Error("Deleting assets requires an online connection.")
     suspend fun seedIfNeeded()
     fun observeDashboardSummary(): Flow<DashboardSummary>
     fun observeRecentMovements(limit: Int = 10): Flow<List<AssetMovement>>

@@ -301,6 +301,12 @@ private fun AssetNavHost(container: AppContainer) {
             ) { entry ->
                 val viewModel: AssetHistoryViewModel = viewModel(factory = container.viewModelFactory)
                 val assetId = entry.arguments?.getLong("assetId") ?: 0L
+                val deleting by viewModel.deleting.collectAsStateWithLifecycle()
+                val deleteError by viewModel.deleteError.collectAsStateWithLifecycle()
+                val deleted by viewModel.deleted.collectAsStateWithLifecycle()
+                LaunchedEffect(deleted) {
+                    if (deleted) navController.popBackStack()
+                }
                 val asset by viewModel.asset.collectAsStateWithLifecycle()
                 val movements by viewModel.movements.collectAsStateWithLifecycle()
                 LaunchedEffect(assetId) {
@@ -309,6 +315,10 @@ private fun AssetNavHost(container: AppContainer) {
                 AssetHistoryScreen(
                     asset = asset,
                     movements = movements,
+                    canDelete = user?.role?.canManageUsers == true,
+                    deleting = deleting,
+                    deleteError = deleteError,
+                    onDelete = { user?.let(viewModel::deleteAsset) },
                     onBack = { navController.popBackStack() }
                 )
             }

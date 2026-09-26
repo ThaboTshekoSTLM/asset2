@@ -3,6 +3,9 @@ package za.gov.municipal.ictasset.presentation.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import za.gov.municipal.ictasset.domain.model.User
+import za.gov.municipal.ictasset.domain.model.SaveResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +22,26 @@ class AssetHistoryViewModel(
     private val assetRepository: AssetRepository
 ) : ViewModel() {
     private val selectedAssetId = MutableStateFlow<Long?>(null)
+    val deleting = MutableStateFlow(false)
+    val deleteError = MutableStateFlow<String?>(null)
+    val deleted = MutableStateFlow(false)
+
+    fun deleteAsset(actor: User) {
+        val id = selectedAssetId.value ?: return
+        if (deleting.value || deleted.value) return
+        deleting.value = true
+        deleteError.value = null
+        viewModelScope.launch {
+            try {
+                when (val result = assetRepository.archiveAsset(id, actor)) {
+                    is SaveResult.Success -> deleted.value = true
+                    is SaveResult.Error -> deleteError.value = result.message
+                }
+            } finally {
+                deleting.value = false
+            }
+        }
+    }
 
     val asset: StateFlow<Asset?> =
         selectedAssetId.flatMapLatest { assetId ->
@@ -31,6 +54,10 @@ class AssetHistoryViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun load(assetId: Long) {
+        if (selectedAssetId.value != assetId) {
+            deleteError.value = null
+            deleted.value = false
+        }
         selectedAssetId.value = assetId
     }
 }

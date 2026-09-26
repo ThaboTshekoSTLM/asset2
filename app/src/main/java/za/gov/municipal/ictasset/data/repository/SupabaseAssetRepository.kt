@@ -30,6 +30,21 @@ class SupabaseAssetRepository(
     private val remoteAssetIds = mutableMapOf<Long, String>()
 
     fun currentAssets(): List<Asset> = assets.value
+
+    override suspend fun archiveAsset(assetId: Long, actor: User): SaveResult {
+        if (!actor.role.canManageUsers) return SaveResult.Error("Admin access required.")
+        val remoteId = remoteAssetIds[assetId] ?: return SaveResult.Error("Asset not found.")
+        return try {
+            api.archiveAsset(remoteId)
+            assets.value = assets.value.filterNot { it.id == assetId }
+            remoteAssetIds.remove(assetId)
+            SaveResult.Success(assetId)
+        } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            SaveResult.Error(error.message ?: "Unable to delete asset.")
+        }
+    }
     fun currentMovements(): List<AssetMovement> = movements.value
 
     override suspend fun seedIfNeeded() {
