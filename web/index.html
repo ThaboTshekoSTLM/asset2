@@ -131,13 +131,6 @@
             <button id="clear-search" class="secondary-btn">Clear</button>
           </div>
           <div id="asset-list" class="asset-list"></div>
-          <dialog id="asset-detail-dialog" class="asset-detail-dialog">
-            <div class="dialog-heading">
-              <h3>Device details</h3>
-              <button id="close-asset-detail" class="secondary-btn" type="button">Close</button>
-            </div>
-            <div id="asset-detail-content"></div>
-          </dialog>
         </section>
 
         <section id="capture" class="screen">
@@ -261,6 +254,15 @@
             <div id="user-list" class="record-list"></div>
           </section>
         </section>
+
+        <!-- Shared by dashboard and asset search; keep outside hidden screens. -->
+        <dialog id="asset-detail-dialog" class="asset-detail-dialog">
+          <div class="dialog-heading">
+            <h3>Device details</h3>
+            <button id="close-asset-detail" class="secondary-btn" type="button">Close</button>
+          </div>
+          <div id="asset-detail-content"></div>
+        </dialog>
 
         <footer class="app-footer">Powered by Africore Innovations 2026</footer>
       </main>
