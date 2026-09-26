@@ -67,7 +67,7 @@ class SupabaseAssetRepository(
 
     override fun searchAssets(query: String): Flow<List<Asset>> = assets.map { list ->
         val needle = query.trim().lowercase()
-        if (needle.isBlank()) emptyList() else list.filter {
+        if (needle.isBlank()) list else list.filter {
             it.assetBarcode.lowercase().contains(needle) ||
                 it.serialNumber.lowercase().contains(needle)
         }
